@@ -1,0 +1,5 @@
+C:/Users/kseni/Downloads/Telegram Desktop/lab1OSLinuxToWind/lab1OS/build/CMakeFiles/parent.dir
+C:/Users/kseni/Downloads/Telegram Desktop/lab1OSLinuxToWind/lab1OS/build/CMakeFiles/child1.dir
+C:/Users/kseni/Downloads/Telegram Desktop/lab1OSLinuxToWind/lab1OS/build/CMakeFiles/child2.dir
+C:/Users/kseni/Downloads/Telegram Desktop/lab1OSLinuxToWind/lab1OS/build/CMakeFiles/edit_cache.dir
+C:/Users/kseni/Downloads/Telegram Desktop/lab1OSLinuxToWind/lab1OS/build/CMakeFiles/rebuild_cache.dir
