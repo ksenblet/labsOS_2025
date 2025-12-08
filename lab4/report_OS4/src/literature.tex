@@ -1,0 +1,867 @@
+\section{Исходная программа}
+
+{\bfseries PiCalc.hpp} 
+
+\begin{lstlisting}[language=C++]
+#ifndef PI_CALCULATOR_HPP
+#define PI_CALCULATOR_HPP
+
+class PiCalc {
+public:
+    virtual float Calculate(int K) = 0;
+    virtual ~PiCalc() = default;
+};
+
+#endif 
+\end{lstlisting}
+
+{\bfseries Sorter.hpp} 
+
+\begin{lstlisting}[language=C++]
+#ifndef ARRAY_SORTER_HPP
+#define ARRAY_SORTER_HPP
+
+class Sorter {
+public:
+    virtual int* Sort(int* array, int size) = 0;
+    virtual ~Sorter() = default;
+};
+
+#endif
+\end{lstlisting}
+
+{\bfseries PiLeibniz.cpp} 
+
+\begin{lstlisting}[language=C++]
+#include "../include/PiCalc.hpp"
+
+
+class LeibnizPi : public PiCalc {
+public:
+    float Calculate(int K) override {
+        float result = 0.0f;
+        for (int n = 0; n < K; n++) {
+            float term = 1.0f / (2 * n + 1);
+            if (n % 2 == 0) result += term;
+            else result -= term;
+        }
+        return 4.0f * result;
+    }
+};
+
+
+extern "C" __declspec(dllexport) PiCalc* CreatePiCalculator() {
+    return new LeibnizPi();
+}
+
+extern "C" __declspec(dllexport) void DeletePiCalculator(PiCalc* p) {
+    delete p;
+}
+\end{lstlisting}
+
+{\bfseries BubbleSort.cpp} 
+
+\begin{lstlisting}[language=C++]
+#include "../include/Sorter.hpp"
+
+
+class BubbleSort : public Sorter {
+public:
+    int* Sort(int* array, int size) override {
+        for (int i = 0; i < size - 1; i++) {
+            for (int j = 0; j < size - i - 1; j++) {
+                if (array[j] > array[j + 1]) {
+                    int temp = array[j];
+                    array[j] = array[j + 1];
+                    array[j + 1] = temp;
+                }
+            }
+        }
+        return array;
+    }
+};
+
+extern "C" __declspec(dllexport) Sorter* CreateArraySorter() {
+    return new BubbleSort();
+}
+
+extern "C" __declspec(dllexport) void DeleteArraySorter(Sorter* p) {
+    delete p;
+}
+\end{lstlisting}
+
+{\bfseries PiWallis.cpp} 
+
+\begin{lstlisting}[language=C++]
+#include "../include/PiCalc.hpp"
+
+
+class WallisPi : public PiCalc {
+public:
+    float Calculate(int K) override {
+        float pi = 1.0f;
+        for (int n = 1; n <= K; n++) {
+            float numerator = 4.0f * n * n;
+            float denominator = 4.0f * n * n - 1.0f;
+            pi *= numerator / denominator;
+        }
+        return 2.0f * pi;
+    }
+};
+
+extern "C" __declspec(dllexport) PiCalc* CreatePiCalculator() {
+    return new WallisPi();
+}
+
+extern "C" __declspec(dllexport) void DeletePiCalculator(PiCalc* p) {
+    delete p;
+}
+\end{lstlisting}
+
+{\bfseries QuickSort.cpp} 
+
+\begin{lstlisting}[language=C++]
+#include "../include/Sorter.hpp"
+
+
+class QuickSort : public Sorter {
+private:
+    void quickSort(int* array, int low, int high) {
+        if (low < high) {
+            int pivot = array[high];
+            int i = low - 1;
+            
+            for (int j = low; j < high; j++) {
+                if (array[j] <= pivot) {
+                    i++;
+                    int temp = array[i];
+                    array[i] = array[j];
+                    array[j] = temp;
+                }
+            }
+            
+            int temp = array[i + 1];
+            array[i + 1] = array[high];
+            array[high] = temp;
+            
+            int pi = i + 1;
+            quickSort(array, low, pi - 1);
+            quickSort(array, pi + 1, high);
+        }
+    }
+    
+public:
+    int* Sort(int* array, int size) override {
+        if (size > 1) {
+            quickSort(array, 0, size - 1);
+        }
+        return array;
+    }
+};
+
+extern "C" __declspec(dllexport) Sorter* CreateArraySorter() {
+    return new QuickSort();
+}
+
+extern "C" __declspec(dllexport) void DeleteArraySorter(Sorter* p) {
+    delete p;
+}
+\end{lstlisting}
+
+{\bfseries prog1/main.cpp} 
+
+\begin{lstlisting}[language=C++]
+#include <iostream>
+#include <string>
+#include <sstream>
+
+#include "../include/PiCalc.hpp"
+#include "../include/Sorter.hpp"
+
+
+// oбъявления функций из DLL 
+extern "C" {
+    PiCalc* CreatePiCalculator();
+    Sorter* CreateArraySorter();
+    void DeletePiCalculator(PiCalc*);
+    void DeleteArraySorter(Sorter*);
+}
+
+void printArray(int* arr, int size) {
+    for (int i = 0; i < size; i++) {
+        std::cout << arr[i] << " ";
+    }
+    std::cout << std::endl;
+}
+
+int main() {
+    PiCalc* piCalc = CreatePiCalculator();
+    Sorter* sorter = CreateArraySorter();
+    
+    std::cout << "Program 1 Static Linking " << std::endl;
+    std::cout << "0 - Exit" << std::endl;
+    std::cout << "1 K - Calculate Pi" << std::endl;
+    std::cout << "2 n a1 a2 ... an - Sort array" << std::endl;
+    
+    std::string line;
+    while (true) {
+        std::cout << "\n> ";
+        std::getline(std::cin, line);
+        
+        if (line.empty()) continue;
+        
+        std::istringstream iss(line);
+        std::string cmd;
+        iss >> cmd;
+        
+        if (cmd == "0") break;
+        
+        if (cmd == "1") {
+            int K;
+            if (iss >> K && K > 0) {
+                float pi = piCalc->Calculate(K);
+                std::cout << "Pi(" << K << ") = " << pi << std::endl;
+            }
+        }
+        
+        else if (cmd == "2") {
+            int n;
+            if (iss >> n && n > 0) {
+                int* array = new int[n];
+                
+                for (int i = 0; i < n; i++) {
+                    if (!(iss >> array[i])) {
+                        std::cout << "Error" << std::endl;
+                        delete[] array;
+                        array = nullptr;
+                        break;
+                    }
+                }
+                
+                if (array) {
+                    std::cout << "Before: ";
+                    printArray(array, n);
+                    
+                    sorter->Sort(array, n);
+                    
+                    std::cout << "After:  ";
+                    printArray(array, n);
+                    
+                    delete[] array;
+                }
+            }
+        }
+    }
+    
+    DeletePiCalculator(piCalc);
+    DeleteArraySorter(sorter);
+    
+    return 0;
+}
+\end{lstlisting}
+
+{\bfseries prog2/main.cpp} 
+
+\begin{lstlisting}[language=C++]
+#include <iostream>
+#include <string>
+#include <sstream>
+
+#include "DynamicLoader.hpp"
+
+void printArray(int* arr, int size) {
+    for (int i = 0; i < size; i++) {
+        std::cout << arr[i] << " ";
+    }
+    std::cout << std::endl;
+}
+
+int main() {
+    DynamicLoader manager;
+
+    if (!manager.load("lib1.dll")) {
+        std::cout << "Cannot load lib1.dll, trying lib2.dll..." << std::endl;
+        if (!manager.load("lib2.dll")) {
+            std::cout << "Cannot load any library!" << std::endl;
+            return 1;
+        }
+    }
+    
+    std::cout << "   Program 2 Dynamic Loading" << std::endl;
+    std::cout << "Current library: " << manager.currentLibrary() << std::endl;
+    std::cout << "Commands:" << std::endl;
+    std::cout << "  0 - Switch library" << std::endl;
+    std::cout << "  1 K - Calculate Pi" << std::endl;
+    std::cout << "  2 n a1 a2 ... an - Sort array" << std::endl;
+    std::cout << "  'exit' for exit" << std::endl;
+    
+    std::string line;
+    while (true) {
+        std::cout << "\n> ";
+        std::getline(std::cin, line);
+        
+        if (line.empty()) continue;
+        if (line == "exit") break;
+        
+        std::istringstream iss(line);
+        std::string cmd;
+        iss >> cmd;
+        
+        if (cmd == "0") {
+            if (manager.switchLib()) {
+                std::cout << "Switched to: " << manager.currentLibrary() << std::endl;
+            } else {
+                std::cout << "Switch failed!" << std::endl;
+            }
+        }
+        
+        else if (cmd == "1") {
+            int K;
+            if (iss >> K && K > 0) {
+                PiCalc* calc = manager.getPiCalculator();
+                if (calc) {
+                    float pi = calc->Calculate(K);  // Теперь работает!
+                    std::cout << "Pi(" << K << ") = " << pi << std::endl;
+                    manager.freePiCalculator(calc);
+                } else {
+                    std::cout << "Failed to create PiCalculator" << std::endl;
+                }
+            } else {
+                std::cout << "Invalid K value" << std::endl;
+            }
+        }
+        
+        else if (cmd == "2") {
+            int n;
+            if (iss >> n && n > 0) {
+                int* arr = new int[n];
+                bool ok = true;
+                
+                for (int i = 0; i < n; i++) {
+                    if (!(iss >> arr[i])) {
+                        std::cout << "Need " << n << " numbers!" << std::endl;
+                        delete[] arr;
+                        arr = nullptr;
+                        ok = false;
+                        break;
+                    }
+                }
+                
+                if (ok && arr) {
+                    Sorter* sorter = manager.getArraySorter();
+                    if (sorter) {
+                        std::cout << "Before: ";
+                        printArray(arr, n);
+                        
+                        sorter->Sort(arr, n);
+                        
+                        std::cout << "After:  ";
+                        printArray(arr, n);
+                        
+                        manager.freeArraySorter(sorter);
+                    } else {
+                        std::cout << "Failed to create Sorter" << std::endl;
+                    }
+                    delete[] arr;
+                }
+            } else {
+                std::cout << "Invalid array size" << std::endl;
+            }
+        }
+        
+        else {
+            std::cout << "Unknown command: " << cmd << std::endl;
+        }
+    }
+    
+    return 0;
+}
+\end{lstlisting}
+
+{\bfseries DynamicLoader.hpp} 
+
+\begin{lstlisting}[language=C++]
+#pragma once
+
+#include <string>
+
+#include "../include/PiCalc.hpp"
+#include "../include/Sorter.hpp"    
+
+
+class DynamicLoader {
+private:
+    void* dllHandle;
+    std::string currentLib;
+    
+    PiCalc* (*createPi)();
+    Sorter* (*createSort)();
+    void (*deletePi)(PiCalc*);
+    void (*deleteSort)(Sorter*);
+    
+public:
+    DynamicLoader();
+    ~DynamicLoader();
+    
+    bool load(const std::string& dllPath);
+    void unload();
+    bool switchLib();  
+    
+    PiCalc* getPiCalculator();
+    Sorter* getArraySorter();
+    void freePiCalculator(PiCalc* p);
+    void freeArraySorter(Sorter* p);
+    
+    std::string currentLibrary() const;
+    bool isLoaded() const;
+};
+\end{lstlisting}
+
+{\bfseries DynamicLoader.cpp} 
+
+\begin{lstlisting}[language=C++]
+#include <windows.h>
+
+#include "DynamicLoader.hpp"
+
+DynamicLoader::DynamicLoader() : dllHandle(nullptr), 
+                                createPi(nullptr),
+                                createSort(nullptr),
+                                deletePi(nullptr),
+                                deleteSort(nullptr) {}  
+
+DynamicLoader::~DynamicLoader() {
+    unload();
+}
+
+bool DynamicLoader::load(const std::string& dllPath) {
+    unload();
+    
+    dllHandle = LoadLibraryA(dllPath.c_str());
+    if (!dllHandle) {
+        return false;
+    }
+
+    createPi = (PiCalc*(*)())GetProcAddress((HMODULE)dllHandle, "CreatePiCalculator");
+    createSort = (Sorter*(*)())GetProcAddress((HMODULE)dllHandle, "CreateArraySorter");
+    deletePi = (void(*)(PiCalc*))GetProcAddress((HMODULE)dllHandle, "DeletePiCalculator");
+    deleteSort = (void(*)(Sorter*))GetProcAddress((HMODULE)dllHandle, "DeleteArraySorter");
+    
+    if (!createPi || !createSort || !deletePi || !deleteSort) {
+        FreeLibrary((HMODULE)dllHandle);
+        dllHandle = nullptr;
+        return false;
+    }
+    
+    currentLib = dllPath;
+    return true;
+}
+
+void DynamicLoader::unload() {
+    if (dllHandle) {
+        FreeLibrary((HMODULE)dllHandle);
+        dllHandle = nullptr;
+    }
+    currentLib.clear();
+
+    createPi = nullptr;
+    createSort = nullptr;
+    deletePi = nullptr;
+    deleteSort = nullptr;
+}
+
+bool DynamicLoader::switchLib() {
+    if (currentLib.find("lib1") != std::string::npos) {
+        return load("lib2.dll");
+    } else {
+        return load("lib1.dll");
+    }
+}
+
+PiCalc* DynamicLoader::getPiCalculator() {
+    if (createPi) {
+        return createPi();
+    }
+    return nullptr;
+}
+
+Sorter* DynamicLoader::getArraySorter() {
+    if (createSort) {
+        return createSort();
+    }
+    return nullptr;
+}
+
+void DynamicLoader::freePiCalculator(PiCalc* p) {
+    if (deletePi && p) {
+        deletePi(p);
+    }
+}
+
+void DynamicLoader::freeArraySorter(Sorter* p) {
+    if (deleteSort && p) {
+        deleteSort(p);
+    }
+}
+
+std::string DynamicLoader::currentLibrary() const {
+    return currentLib;
+}
+
+bool DynamicLoader::isLoaded() const {
+    return dllHandle != nullptr;
+}
+\end{lstlisting}
+
+{\bfseries strace for Program1} 
+
+\begin{verbatim}
+"Time of Day","Process Name","PID","Operation","Path","Result","Detail"
+"17:09:14,7530688","Program1.exe","20912","Process Start","","SUCCESS","Parent PID: 21036, Command line: ""C:\Users\kseni\lab4_OS\build\Program1.exe"", Current directory: C:\Users\kseni\lab4_OS\build\, Environment: 
+;	ALLUSERSPROFILE=C:\ProgramData
+;	APPDATA=C:\Users\kseni\AppData\Roaming
+;	CC=C:/Users/kseni/gcc/bin/gcc.exe
+;	CHROME_CRASHPAD_PIPE_NAME=\\.\pipe\crashpad_14992_EFVMFEHBOBIBUPZX
+;	CommonProgramFiles=C:\Program Files\Common Files
+;	CommonProgramFiles(x86)=C:\Program Files (x86)\Common Files
+;	CommonProgramW6432=C:\Program Files\Common Files
+;	COMPUTERNAME=LAPTOP-ECH40E5U
+;	ComSpec=C:\Windows\system32\cmd.exe
+;	CXX=C:/Users/kseni/gcc/bin/g++.exe
+;	DriverData=C:\Windows\System32\Drivers\DriverData
+;	EFC_4152=1
+;	HOMEDRIVE=C:
+;	HOMEPATH=\Users\kseni
+;	JAVA_HOME=C:\Program Files\Zulu\zulu-17\
+;	LOCALAPPDATA=C:\Users\kseni\AppData\Local
+;	LOGONSERVER=\\LAPTOP-ECH40E5U
+;	NUMBER_OF_PROCESSORS=8
+;	OneDrive=C:\Users\kseni\OneDrive
+;	OneDriveConsumer=C:\Users\kseni\OneDrive
+;	ORIGINAL_XDG_CURRENT_DESKTOP=undefined
+;	OS=Windows_NT
+;	Path=%PATH%;C:\Program Files\Python312;C:\Program Files\Python312\Scripts;C:\Users\kseni\AppData\Roaming\Python\Python312\Scripts;C:\Users\kseni\gcc\bin;C:\Program Files\Git\bin;C:\Users\kseni\AppData\Local\Programs\Microsoft VS Code\bin;C:\Program Files\CMake\bin;D:\Program Files\VMware\VMware Workstation\bin\;C:\Program Files\swipl\bin;
+;	PATHEXT=.COM;.EXE;.BAT;.CMD;.VBS;.VBE;.JS;.JSE;.WSF;.WSH;.MSC;.CPL
+;	PROCESSOR_ARCHITECTURE=AMD64
+;	PROCESSOR_IDENTIFIER=Intel64 Family 6 Model 140 Stepping 2, GenuineIntel
+;	PROCESSOR_LEVEL=6
+;	PROCESSOR_REVISION=8c02
+;	ProgramData=C:\ProgramData
+;	ProgramFiles=C:\Program Files
+;	ProgramFiles(x86)=C:\Program Files (x86)
+;	ProgramW6432=C:\Program Files
+;	PSModulePath=C:\Users\kseni\OneDrive\Документы\WindowsPowerShell\Modules;C:\Program Files\WindowsPowerShell\Modules;C:\Windows\system32\WindowsPowerShell\v1.0\Modules
+;	PUBLIC=C:\Users\Public
+;	PyCharm Community Edition=C:\Program Files\JetBrains\PyCharm Community Edition 2023.3.3\bin;
+;	SESSIONNAME=Console
+;	SystemDrive=C:
+;	SystemRoot=C:\Windows
+;	TEMP=C:\Users\kseni\AppData\Local\Temp
+;	TMP=C:\Users\kseni\AppData\Local\Temp
+;	USERDOMAIN=LAPTOP-ECH40E5U
+;	USERDOMAIN_ROAMINGPROFILE=LAPTOP-ECH40E5U
+;	USERNAME=kseni
+;	USERPROFILE=C:\Users\kseni
+;	VSCODE_PYTHON_AUTOACTIVATE_GUARD=1
+;	windir=C:\Windows
+;	ZES_ENABLE_SYSMAN=1
+;	TERM_PROGRAM=vscode
+;	TERM_PROGRAM_VERSION=1.106.3
+;	LANG=en_US.UTF-8
+;	COLORTERM=truecolor
+;	GIT_ASKPASS=c:\Users\kseni\AppData\Local\Programs\Microsoft VS Code\resources\app\extensions\git\dist\askpass.sh
+;	VSCODE_GIT_ASKPASS_NODE=C:\Users\kseni\AppData\Local\Programs\Microsoft VS Code\Code.exe
+;	VSCODE_GIT_ASKPASS_EXTRA_ARGS=
+;	VSCODE_GIT_ASKPASS_MAIN=c:\Users\kseni\AppData\Local\Programs\Microsoft VS Code\resources\app\extensions\git\dist\askpass-main.js
+;	VSCODE_GIT_IPC_HANDLE=\\.\pipe\vscode-git-c0429ea22d-sock
+;	VSCODE_INJECTION=1"
+"17:09:14,7530801","Program1.exe","20912","Thread Create","","SUCCESS","Thread ID: 1684"
+"17:09:14,7563884","Program1.exe","20912","Load Image","C:\Users\kseni\lab4_OS\build\Program1.exe","SUCCESS","Image Base: 0x7ff60d9a0000, Image Size: 0xe77000"
+"17:09:14,7564439","Program1.exe","20912","Load Image","C:\Windows\System32\ntdll.dll","SUCCESS","Image Base: 0x7ffcff190000, Image Size: 0x217000"
+"17:09:14,7565720","Program1.exe","20912","RegOpenKey","HKLM\System\CurrentControlSet\Control\Nls\CodePage","REPARSE","Desired Access: Read"
+"17:09:14,7566095","Program1.exe","20912","RegOpenKey","HKLM\System\CurrentControlSet\Control\Nls\CodePage","SUCCESS","Desired Access: Read"
+"17:09:14,7566313","Program1.exe","20912","RegQueryValue","HKLM\System\CurrentControlSet\Control\Nls\CodePage\ACP","SUCCESS","Type: REG_SZ, Length: 10, Data: 1251"
+"17:09:14,7566535","Program1.exe","20912","RegQueryValue","HKLM\System\CurrentControlSet\Control\Nls\CodePage\OEMCP","SUCCESS","Type: REG_SZ, Length: 8, Data: 866"
+"17:09:14,7566673","Program1.exe","20912","RegCloseKey","HKLM\System\CurrentControlSet\Control\Nls\CodePage","SUCCESS",""
+"17:09:14,7567539","Program1.exe","20912","RegOpenKey","HKLM\System\CurrentControlSet\Control\Session Manager","REPARSE","Desired Access: Query Value"
+"17:09:14,7567697","Program1.exe","20912","RegOpenKey","HKLM\System\CurrentControlSet\Control\Session Manager","SUCCESS","Desired Access: Query Value"
+"17:09:14,7567859","Program1.exe","20912","RegQueryValue","HKLM\System\CurrentControlSet\Control\Session Manager\RaiseExceptionOnPossibleDeadlock","NAME NOT FOUND","Length: 80"
+"17:09:14,7567994","Program1.exe","20912","RegCloseKey","HKLM\System\CurrentControlSet\Control\Session Manager","SUCCESS",""
+"17:09:14,7568142","Program1.exe","20912","RegOpenKey","HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Segment Heap","REPARSE","Desired Access: Query Value"
+"17:09:14,7568241","Program1.exe","20912","RegOpenKey","HKLM\System\CurrentControlSet\Control\Session Manager\Segment Heap","NAME NOT FOUND","Desired Access: Query Value"
+"17:09:14,7568636","Program1.exe","20912","RegOpenKey","HKLM\SYSTEM\CurrentControlSet\Control\Session Manager","REPARSE","Desired Access: Query Value, Enumerate Sub Keys"
+"17:09:14,7568773","Program1.exe","20912","RegOpenKey","HKLM\System\CurrentControlSet\Control\Session Manager","SUCCESS","Desired Access: Query Value, Enumerate Sub Keys"
+"17:09:14,7568907","Program1.exe","20912","RegQueryValue","HKLM\System\CurrentControlSet\Control\Session Manager\ResourcePolicies","NAME NOT FOUND","Length: 24"
+"17:09:14,7569032","Program1.exe","20912","RegCloseKey","HKLM\System\CurrentControlSet\Control\Session Manager","SUCCESS",""
+"17:09:14,7571179","Program1.exe","20912","RegQueryValue","HKLM\System\CurrentControlSet\Control\WMI\Security\57a6ed1a-79f7-5011-b242-4784e5620cf7","NAME NOT FOUND","Length: 528"
+"17:09:14,7571723","Program1.exe","20912","QueryNameInformationFile","C:\Windows\System32\ntdll.dll","SUCCESS","Name: \Windows\System32\ntdll.dll"
+"17:09:14,7572404","Program1.exe","20912","RegOpenKey","HKLM\SYSTEM\CurrentControlSet\Control\Session Manager","REPARSE","Desired Access: Query Value, Enumerate Sub Keys"
+"17:09:14,7572597","Program1.exe","20912","RegOpenKey","HKLM\System\CurrentControlSet\Control\Session Manager","SUCCESS","Desired Access: Query Value, Enumerate Sub Keys"
+"17:09:14,7572780","Program1.exe","20912","RegQueryValue","HKLM\System\CurrentControlSet\Control\Session Manager\ResourcePolicies","NAME NOT FOUND","Length: 24"
+"17:09:14,7572951","Program1.exe","20912","RegCloseKey","HKLM\System\CurrentControlSet\Control\Session Manager","SUCCESS",""
+"17:09:14,7575445","Program1.exe","20912","CreateFile","C:\Users\kseni\lab4_OS\build","SUCCESS","Desired Access: Execute/Traverse, Synchronize, Disposition: Open, Options: Directory, Synchronous IO Non-Alert, Attributes: n/a, ShareMode: Read, Write, AllocationSize: n/a, OpenResult: Opened"
+"17:09:14,7576813","Program1.exe","20912","Load Image","C:\Windows\System32\kernel32.dll","SUCCESS","Image Base: 0x7ffcfe350000, Image Size: 0xc4000"
+"17:09:14,7578457","Program1.exe","20912","Load Image","C:\Windows\System32\KernelBase.dll","SUCCESS","Image Base: 0x7ffcfc790000, Image Size: 0x3b7000"
+"17:09:14,7592454","Program1.exe","20912","RegQueryValue","HKLM\System\CurrentControlSet\Control\WMI\Security\3c74afb9-8d82-44e3-b52c-365dbf48382a","NAME NOT FOUND","Length: 528"
+"17:09:14,7593115","Program1.exe","20912","QueryNameInformationFile","C:\Windows\System32\KernelBase.dll","SUCCESS","Name: \Windows\System32\KernelBase.dll"
+"17:09:14,7595366","Program1.exe","20912","RegQueryValue","HKLM\System\CurrentControlSet\Control\WMI\Security\b749553b-d950-5e03-6282-3145a61b1002","NAME NOT FOUND","Length: 528"
+"17:09:14,7595870","Program1.exe","20912","QueryNameInformationFile","C:\Windows\System32\KernelBase.dll","SUCCESS","Name: \Windows\System32\KernelBase.dll"
+"17:09:14,7597654","Program1.exe","20912","RegOpenKey","HKLM\System\CurrentControlSet\Control\StateSeparation\RedirectionMap\Keys","REPARSE","Desired Access: Read"
+"17:09:14,7597938","Program1.exe","20912","RegOpenKey","HKLM\System\CurrentControlSet\Control\StateSeparation\RedirectionMap\Keys","NAME NOT FOUND","Desired Access: Read"
+"17:09:14,7598752","Program1.exe","20912","QueryNameInformationFile","C:\Windows\System32\KernelBase.dll","SUCCESS","Name: \Windows\System32\KernelBase.dll"
+"17:09:14,7599334","Program1.exe","20912","RegQueryValue","HKLM\System\CurrentControlSet\Control\WMI\Security\05f95efe-7f75-49c7-a994-60a55cc09571","NAME NOT FOUND","Length: 528"
+"17:09:14,7599849","Program1.exe","20912","QueryNameInformationFile","C:\Windows\System32\KernelBase.dll","SUCCESS","Name: \Windows\System32\KernelBase.dll"
+"17:09:14,7600496","Program1.exe","20912","RegOpenKey","HKLM\System\CurrentControlSet\Control\Terminal Server","REPARSE","Desired Access: Read"
+"17:09:14,7600691","Program1.exe","20912","RegOpenKey","HKLM\System\CurrentControlSet\Control\Terminal Server","SUCCESS","Desired Access: Read"
+"17:09:14,7600902","Program1.exe","20912","RegQueryValue","HKLM\System\CurrentControlSet\Control\Terminal Server\TSAppCompat","NAME NOT FOUND","Length: 548"
+"17:09:14,7601046","Program1.exe","20912","RegQueryValue","HKLM\System\CurrentControlSet\Control\Terminal Server\TSUserEnabled","SUCCESS","Type: REG_DWORD, Length: 4, Data: 0"
+"17:09:14,7601215","Program1.exe","20912","RegCloseKey","HKLM\System\CurrentControlSet\Control\Terminal Server","SUCCESS",""
+"17:09:14,7603237","Program1.exe","20912","RegOpenKey","HKLM\System\CurrentControlSet\Control\SafeBoot\Option","REPARSE","Desired Access: Query Value, Set Value"
+"17:09:14,7603393","Program1.exe","20912","RegOpenKey","HKLM\System\CurrentControlSet\Control\SafeBoot\Option","NAME NOT FOUND","Desired Access: Query Value, Set Value"
+"17:09:14,7603578","Program1.exe","20912","RegOpenKey","HKLM\System\CurrentControlSet\Control\Srp\GP\DLL","REPARSE","Desired Access: Read"
+"17:09:14,7603664","Program1.exe","20912","RegOpenKey","HKLM\System\CurrentControlSet\Control\Srp\GP\DLL","SUCCESS","Desired Access: Read"
+"17:09:14,7603796","Program1.exe","20912","RegQueryKey","HKLM\System\CurrentControlSet\Control\Srp\Gp\DLL","SUCCESS","Query: Full, SubKeys: 1, Values: 0"
+"17:09:14,7603913","Program1.exe","20912","RegCloseKey","HKLM\System\CurrentControlSet\Control\Srp\Gp\DLL","SUCCESS",""
+"17:09:14,7604002","Program1.exe","20912","RegOpenKey","HKLM\Software\Policies\Microsoft\Windows\Safer\CodeIdentifiers","SUCCESS","Desired Access: Query Value"
+"17:09:14,7604179","Program1.exe","20912","RegQueryValue","HKLM\SOFTWARE\Policies\Microsoft\Windows\safer\codeidentifiers\TransparentEnabled","NAME NOT FOUND","Length: 80"
+"17:09:14,7604342","Program1.exe","20912","RegCloseKey","HKLM\SOFTWARE\Policies\Microsoft\Windows\safer\codeidentifiers","SUCCESS",""
+"17:09:14,7604471","Program1.exe","20912","RegOpenKey","HKCU\Software\Policies\Microsoft\Windows\Safer\CodeIdentifiers","NAME NOT FOUND","Desired Access: Query Value"
+"17:09:14,7604708","Program1.exe","20912","RegOpenKey","HKLM\System\CurrentControlSet\Control\FileSystem\","REPARSE","Desired Access: Read"
+"17:09:14,7604792","Program1.exe","20912","RegOpenKey","HKLM\System\CurrentControlSet\Control\FileSystem","SUCCESS","Desired Access: Read"
+"17:09:14,7604891","Program1.exe","20912","RegQueryValue","HKLM\System\CurrentControlSet\Control\FileSystem\LongPathsEnabled","SUCCESS","Type: REG_DWORD, Length: 4, Data: 1"
+"17:09:14,7605010","Program1.exe","20912","RegQueryValue","HKLM\System\CurrentControlSet\Control\FileSystem\LPGO","NAME NOT FOUND","Length: 20"
+"17:09:14,7605100","Program1.exe","20912","RegCloseKey","HKLM\System\CurrentControlSet\Control\FileSystem","SUCCESS",""
+"17:09:14,7606672","Program1.exe","20912","Load Image","C:\Windows\System32\msvcrt.dll","SUCCESS","Image Base: 0x7ffcfe150000, Image Size: 0xa7000"
+"17:09:14,7607882","Program1.exe","20912","Thread Create","","SUCCESS","Thread ID: 16056"
+"17:09:14,7609199","Program1.exe","20912","RegOpenKey","HKLM\System\CurrentControlSet\Control\Session Manager","REPARSE","Desired Access: Query Value"
+"17:09:14,7609398","Program1.exe","20912","RegOpenKey","HKLM\System\CurrentControlSet\Control\Session Manager","SUCCESS","Desired Access: Query Value"
+"17:09:14,7609570","Program1.exe","20912","RegQueryValue","HKLM\System\CurrentControlSet\Control\Session Manager\SafeDllSearchMode","NAME NOT FOUND","Length: 16"
+"17:09:14,7610630","Program1.exe","20912","Thread Create","","SUCCESS","Thread ID: 3904"
+"17:09:14,7611324","Program1.exe","20912","CreateFile","C:\Users\kseni\lab4_OS\build\liblib1.dll","SUCCESS","Desired Access: Read Attributes, Disposition: Open, Options: Open Reparse Point, Attributes: n/a, ShareMode: Read, Write, Delete, AllocationSize: n/a, OpenResult: Opened"
+"17:09:14,7611619","Program1.exe","20912","QueryBasicInformationFile","C:\Users\kseni\lab4_OS\build\liblib1.dll","SUCCESS","CreationTime: 08.12.2025 16:09:51, LastAccessTime: 08.12.2025 17:07:42, LastWriteTime: 08.12.2025 17:02:45, ChangeTime: 08.12.2025 17:02:45, FileAttributes: A"
+"17:09:14,7611760","Program1.exe","20912","CloseFile","C:\Users\kseni\lab4_OS\build\liblib1.dll","SUCCESS",""
+"17:09:14,7612845","Program1.exe","20912","CreateFile","C:\Users\kseni\lab4_OS\build\liblib1.dll","SUCCESS","Desired Access: Read Data/List Directory, Execute/Traverse, Synchronize, Disposition: Open, Options: Synchronous IO Non-Alert, Non-Directory File, Attributes: n/a, ShareMode: Read, Delete, AllocationSize: n/a, OpenResult: Opened"
+"17:09:14,7613336","Program1.exe","20912","CreateFileMapping","C:\Users\kseni\lab4_OS\build\liblib1.dll","FILE LOCKED WITH ONLY READERS","SyncType: SyncTypeCreateSection, PageProtection: PAGE_EXECUTE_READ|PAGE_NOCACHE"
+"17:09:14,7614141","Program1.exe","20912","CreateFileMapping","C:\Users\kseni\lab4_OS\build\liblib1.dll","SUCCESS","SyncType: SyncTypeOther"
+"17:09:14,7614448","Program1.exe","20912","RegOpenKey","HKLM\System\CurrentControlSet\Control\Srp\GP\","REPARSE","Desired Access: Read"
+"17:09:14,7614655","Program1.exe","20912","RegOpenKey","HKLM\System\CurrentControlSet\Control\Srp\GP","SUCCESS","Desired Access: Read"
+"17:09:14,7614884","Program1.exe","20912","RegQueryValue","HKLM\System\CurrentControlSet\Control\Srp\Gp\RuleCount","SUCCESS","Type: REG_DWORD, Length: 4, Data: 2"
+"17:09:14,7615075","Program1.exe","20912","RegCloseKey","HKLM\System\CurrentControlSet\Control\Srp\Gp","SUCCESS",""
+"17:09:14,7615829","Program1.exe","20912","Load Image","C:\Users\kseni\lab4_OS\build\liblib1.dll","SUCCESS","Image Base: 0x7ffcebd80000, Image Size: 0xc8000"
+"17:09:14,7616537","Program1.exe","20912","CloseFile","C:\Users\kseni\lab4_OS\build\liblib1.dll","SUCCESS",""
+"17:09:14,7620339","Program1.exe","20912","RegOpenKey","HKLM\SYSTEM\CurrentControlSet\Control\Session Manager","REPARSE","Desired Access: Query Value, Enumerate Sub Keys"
+"17:09:14,7620544","Program1.exe","20912","RegOpenKey","HKLM\System\CurrentControlSet\Control\Session Manager","SUCCESS","Desired Access: Query Value, Enumerate Sub Keys"
+"17:09:14,7620709","Program1.exe","20912","RegQueryValue","HKLM\System\CurrentControlSet\Control\Session Manager\ResourcePolicies","NAME NOT FOUND","Length: 24"
+"17:09:14,7621033","Program1.exe","20912","RegCloseKey","HKLM\System\CurrentControlSet\Control\Session Manager","SUCCESS",""
+"17:09:14,7621992","Program1.exe","20912","RegOpenKey","HKLM\System\CurrentControlSet\Control\Nls\Sorting\Versions","REPARSE","Desired Access: Read"
+"17:09:14,7622184","Program1.exe","20912","RegOpenKey","HKLM\System\CurrentControlSet\Control\Nls\Sorting\Versions","SUCCESS","Desired Access: Read"
+"17:09:14,7622414","Program1.exe","20912","RegQueryValue","HKLM\System\CurrentControlSet\Control\Nls\Sorting\Versions\(Default)","SUCCESS","Type: REG_SZ, Length: 18, Data: 00060403"
+"17:09:14,7622597","Program1.exe","20912","RegQueryValue","HKLM\System\CurrentControlSet\Control\Nls\Sorting\Versions\000604xx","SUCCESS","Type: REG_SZ, Length: 26, Data: kernel32.dll"
+"17:09:14,7623860","Program1.exe","20912","RegOpenKey","HKLM\System\CurrentControlSet\Control\Session Manager","REPARSE","Desired Access: Query Value"
+"17:09:14,7624013","Program1.exe","20912","RegOpenKey","HKLM\System\CurrentControlSet\Control\Session Manager","SUCCESS","Desired Access: Query Value"
+"17:09:14,7624169","Program1.exe","20912","RegQueryValue","HKLM\System\CurrentControlSet\Control\Session Manager\SmtDelaySleepLoopWindowSize","NAME NOT FOUND","Length: 80"
+"17:09:14,7624287","Program1.exe","20912","RegQueryValue","HKLM\System\CurrentControlSet\Control\Session Manager\SmtDelaySpinCountThreshold","NAME NOT FOUND","Length: 80"
+"17:09:14,7624410","Program1.exe","20912","RegQueryValue","HKLM\System\CurrentControlSet\Control\Session Manager\SmtDelayBaseYield","NAME NOT FOUND","Length: 80"
+"17:09:14,7624570","Program1.exe","20912","RegQueryValue","HKLM\System\CurrentControlSet\Control\Session Manager\SmtFactorYield","NAME NOT FOUND","Length: 80"
+"17:09:14,7624681","Program1.exe","20912","RegQueryValue","HKLM\System\CurrentControlSet\Control\Session Manager\SmtDelayMaxYield","NAME NOT FOUND","Length: 80"
+"17:09:14,7624819","Program1.exe","20912","RegCloseKey","HKLM\System\CurrentControlSet\Control\Session Manager","SUCCESS",""
+"17:09:14,7625809","Program1.exe","20912","QueryNameInformationFile","C:\Users\kseni\lab4_OS\build\Program1.exe","SUCCESS","Name: \Users\kseni\lab4_OS\build\Program1.exe"
+"17:09:34,8704094","Program1.exe","20912","Thread Exit","","SUCCESS","Thread ID: 3904, User Time: 0.0000000, Kernel Time: 0.0000000"
+"17:09:34,8704341","Program1.exe","20912","Thread Exit","","SUCCESS","Thread ID: 16056, User Time: 0.0000000, Kernel Time: 0.0000000"
+"17:09:34,8705034","Program1.exe","20912","Thread Exit","","SUCCESS","Thread ID: 1684, User Time: 0.0000000, Kernel Time: 0.0000000"
+"17:09:34,8707727","Program1.exe","20912","Process Exit","","SUCCESS","Exit Status: 0, User Time: 0.0000000 seconds, Kernel Time: 0.0000000 seconds, Private Bytes: 868 352, Peak Private Bytes: 868 352, Working Set: 3 731 456, Peak Working Set: 3 731 456"
+"17:09:34,8708042","Program1.exe","20912","RegOpenKey","HKLM\System\CurrentControlSet\Services\bam\State\UserSettings\S-1-5-21-956525231-4267278670-869784965-1001","SUCCESS","Desired Access: All Access"
+"17:09:34,8708283","Program1.exe","20912","RegQueryValue","HKLM\System\CurrentControlSet\Services\bam\State\UserSettings\S-1-5-21-956525231-4267278670-869784965-1001\\Device\HarddiskVolume3\Users\kseni\lab4_OS\build\Program1.exe","NAME NOT FOUND","Length: 40"
+"17:09:34,8708489","Program1.exe","20912","RegCloseKey","HKLM\System\CurrentControlSet\Services\bam\State\UserSettings\S-1-5-21-956525231-4267278670-869784965-1001","SUCCESS",""
+"17:09:34,8709014","Program1.exe","20912","CloseFile","C:\Users\kseni\lab4_OS\build","SUCCESS",""
+"17:09:34,8710110","Program1.exe","20912","RegCloseKey","HKLM\System\CurrentControlSet\Control\Session Manager","SUCCESS",""
+"17:09:34,8710210","Program1.exe","20912","RegCloseKey","HKLM\System\CurrentControlSet\Control\Nls\Sorting\Versions","SUCCESS",""
+
+\end{verbatim}
+
+{\bfseries strace for Program2} 
+
+\begin{verbatim}
+"Time of Day","Process Name","PID","Operation","Path","Result","Detail"
+"17:11:00,9458735","Program2.exe","8972","Process Start","","SUCCESS","Parent PID: 21036, Command line: ""C:\Users\kseni\lab4_OS\build\Program2.exe"", Current directory: C:\Users\kseni\lab4_OS\build\, Environment: 
+;	ALLUSERSPROFILE=C:\ProgramData
+;	APPDATA=C:\Users\kseni\AppData\Roaming
+;	CC=C:/Users/kseni/gcc/bin/gcc.exe
+;	CHROME_CRASHPAD_PIPE_NAME=\\.\pipe\crashpad_14992_EFVMFEHBOBIBUPZX
+;	CommonProgramFiles=C:\Program Files\Common Files
+;	CommonProgramFiles(x86)=C:\Program Files (x86)\Common Files
+;	CommonProgramW6432=C:\Program Files\Common Files
+;	COMPUTERNAME=LAPTOP-ECH40E5U
+;	ComSpec=C:\Windows\system32\cmd.exe
+;	CXX=C:/Users/kseni/gcc/bin/g++.exe
+;	DriverData=C:\Windows\System32\Drivers\DriverData
+;	EFC_4152=1
+;	HOMEDRIVE=C:
+;	HOMEPATH=\Users\kseni
+;	JAVA_HOME=C:\Program Files\Zulu\zulu-17\
+;	LOCALAPPDATA=C:\Users\kseni\AppData\Local
+;	LOGONSERVER=\\LAPTOP-ECH40E5U
+;	NUMBER_OF_PROCESSORS=8
+;	OneDrive=C:\Users\kseni\OneDrive
+;	OneDriveConsumer=C:\Users\kseni\OneDrive
+;	ORIGINAL_XDG_CURRENT_DESKTOP=undefined
+;	OS=Windows_NT
+;	Path=%PATH%;C:\Program Files\Python312;C:\Program Files\Python312\Scripts;C:\Users\kseni\AppData\Roaming\Python\Python312\Scripts;C:\Users\kseni\gcc\bin;C:\Program Files\Git\bin;C:\Users\kseni\AppData\Local\Programs\Microsoft VS Code\bin;C:\Program Files\CMake\bin;D:\Program Files\VMware\VMware Workstation\bin\;C:\Program Files\swipl\bin;
+;	PATHEXT=.COM;.EXE;.BAT;.CMD;.VBS;.VBE;.JS;.JSE;.WSF;.WSH;.MSC;.CPL
+;	PROCESSOR_ARCHITECTURE=AMD64
+;	PROCESSOR_IDENTIFIER=Intel64 Family 6 Model 140 Stepping 2, GenuineIntel
+;	PROCESSOR_LEVEL=6
+;	PROCESSOR_REVISION=8c02
+;	ProgramData=C:\ProgramData
+;	ProgramFiles=C:\Program Files
+;	ProgramFiles(x86)=C:\Program Files (x86)
+;	ProgramW6432=C:\Program Files
+;	PSModulePath=C:\Users\kseni\OneDrive\Документы\WindowsPowerShell\Modules;C:\Program Files\WindowsPowerShell\Modules;C:\Windows\system32\WindowsPowerShell\v1.0\Modules
+;	PUBLIC=C:\Users\Public
+;	PyCharm Community Edition=C:\Program Files\JetBrains\PyCharm Community Edition 2023.3.3\bin;
+;	SESSIONNAME=Console
+;	SystemDrive=C:
+;	SystemRoot=C:\Windows
+;	TEMP=C:\Users\kseni\AppData\Local\Temp
+;	TMP=C:\Users\kseni\AppData\Local\Temp
+;	USERDOMAIN=LAPTOP-ECH40E5U
+;	USERDOMAIN_ROAMINGPROFILE=LAPTOP-ECH40E5U
+;	USERNAME=kseni
+;	USERPROFILE=C:\Users\kseni
+;	VSCODE_PYTHON_AUTOACTIVATE_GUARD=1
+;	windir=C:\Windows
+;	ZES_ENABLE_SYSMAN=1
+;	TERM_PROGRAM=vscode
+;	TERM_PROGRAM_VERSION=1.106.3
+;	LANG=en_US.UTF-8
+;	COLORTERM=truecolor
+;	GIT_ASKPASS=c:\Users\kseni\AppData\Local\Programs\Microsoft VS Code\resources\app\extensions\git\dist\askpass.sh
+;	VSCODE_GIT_ASKPASS_NODE=C:\Users\kseni\AppData\Local\Programs\Microsoft VS Code\Code.exe
+;	VSCODE_GIT_ASKPASS_EXTRA_ARGS=
+;	VSCODE_GIT_ASKPASS_MAIN=c:\Users\kseni\AppData\Local\Programs\Microsoft VS Code\resources\app\extensions\git\dist\askpass-main.js
+;	VSCODE_GIT_IPC_HANDLE=\\.\pipe\vscode-git-c0429ea22d-sock
+;	VSCODE_INJECTION=1"
+"17:11:00,9458927","Program2.exe","8972","Thread Create","","SUCCESS","Thread ID: 340"
+"17:11:00,9486890","Program2.exe","8972","Load Image","C:\Users\kseni\lab4_OS\build\Program2.exe","SUCCESS","Image Base: 0x7ff74f4c0000, Image Size: 0xe77000"
+"17:11:00,9487563","Program2.exe","8972","Load Image","C:\Windows\System32\ntdll.dll","SUCCESS","Image Base: 0x7ffcff190000, Image Size: 0x217000"
+"17:11:00,9488705","Program2.exe","8972","RegOpenKey","HKLM\System\CurrentControlSet\Control\Nls\CodePage","REPARSE","Desired Access: Read"
+"17:11:00,9488918","Program2.exe","8972","RegOpenKey","HKLM\System\CurrentControlSet\Control\Nls\CodePage","SUCCESS","Desired Access: Read"
+"17:11:00,9489307","Program2.exe","8972","RegQueryValue","HKLM\System\CurrentControlSet\Control\Nls\CodePage\ACP","SUCCESS","Type: REG_SZ, Length: 10, Data: 1251"
+"17:11:00,9489640","Program2.exe","8972","RegQueryValue","HKLM\System\CurrentControlSet\Control\Nls\CodePage\OEMCP","SUCCESS","Type: REG_SZ, Length: 8, Data: 866"
+"17:11:00,9489791","Program2.exe","8972","RegCloseKey","HKLM\System\CurrentControlSet\Control\Nls\CodePage","SUCCESS",""
+"17:11:00,9490773","Program2.exe","8972","RegOpenKey","HKLM\System\CurrentControlSet\Control\Session Manager","REPARSE","Desired Access: Query Value"
+"17:11:00,9491071","Program2.exe","8972","RegOpenKey","HKLM\System\CurrentControlSet\Control\Session Manager","SUCCESS","Desired Access: Query Value"
+"17:11:00,9491238","Program2.exe","8972","RegQueryValue","HKLM\System\CurrentControlSet\Control\Session Manager\RaiseExceptionOnPossibleDeadlock","NAME NOT FOUND","Length: 80"
+"17:11:00,9491373","Program2.exe","8972","RegCloseKey","HKLM\System\CurrentControlSet\Control\Session Manager","SUCCESS",""
+"17:11:00,9491511","Program2.exe","8972","RegOpenKey","HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Segment Heap","REPARSE","Desired Access: Query Value"
+"17:11:00,9491661","Program2.exe","8972","RegOpenKey","HKLM\System\CurrentControlSet\Control\Session Manager\Segment Heap","NAME NOT FOUND","Desired Access: Query Value"
+"17:11:00,9492072","Program2.exe","8972","RegOpenKey","HKLM\SYSTEM\CurrentControlSet\Control\Session Manager","REPARSE","Desired Access: Query Value, Enumerate Sub Keys"
+"17:11:00,9492187","Program2.exe","8972","RegOpenKey","HKLM\System\CurrentControlSet\Control\Session Manager","SUCCESS","Desired Access: Query Value, Enumerate Sub Keys"
+"17:11:00,9492310","Program2.exe","8972","RegQueryValue","HKLM\System\CurrentControlSet\Control\Session Manager\ResourcePolicies","NAME NOT FOUND","Length: 24"
+"17:11:00,9492442","Program2.exe","8972","RegCloseKey","HKLM\System\CurrentControlSet\Control\Session Manager","SUCCESS",""
+"17:11:00,9493845","Program2.exe","8972","RegQueryValue","HKLM\System\CurrentControlSet\Control\WMI\Security\57a6ed1a-79f7-5011-b242-4784e5620cf7","NAME NOT FOUND","Length: 528"
+"17:11:00,9494263","Program2.exe","8972","QueryNameInformationFile","C:\Windows\System32\ntdll.dll","SUCCESS","Name: \Windows\System32\ntdll.dll"
+"17:11:00,9494768","Program2.exe","8972","RegOpenKey","HKLM\SYSTEM\CurrentControlSet\Control\Session Manager","REPARSE","Desired Access: Query Value, Enumerate Sub Keys"
+"17:11:00,9494886","Program2.exe","8972","RegOpenKey","HKLM\System\CurrentControlSet\Control\Session Manager","SUCCESS","Desired Access: Query Value, Enumerate Sub Keys"
+"17:11:00,9494995","Program2.exe","8972","RegQueryValue","HKLM\System\CurrentControlSet\Control\Session Manager\ResourcePolicies","NAME NOT FOUND","Length: 24"
+"17:11:00,9495097","Program2.exe","8972","RegCloseKey","HKLM\System\CurrentControlSet\Control\Session Manager","SUCCESS",""
+"17:11:00,9497122","Program2.exe","8972","CreateFile","C:\Users\kseni\lab4_OS\build","SUCCESS","Desired Access: Execute/Traverse, Synchronize, Disposition: Open, Options: Directory, Synchronous IO Non-Alert, Attributes: n/a, ShareMode: Read, Write, AllocationSize: n/a, OpenResult: Opened"
+"17:11:00,9498644","Program2.exe","8972","Load Image","C:\Windows\System32\kernel32.dll","SUCCESS","Image Base: 0x7ffcfe350000, Image Size: 0xc4000"
+"17:11:00,9500466","Program2.exe","8972","Load Image","C:\Windows\System32\KernelBase.dll","SUCCESS","Image Base: 0x7ffcfc790000, Image Size: 0x3b7000"
+"17:11:00,9511167","Program2.exe","8972","RegQueryValue","HKLM\System\CurrentControlSet\Control\WMI\Security\3c74afb9-8d82-44e3-b52c-365dbf48382a","NAME NOT FOUND","Length: 528"
+"17:11:00,9511583","Program2.exe","8972","QueryNameInformationFile","C:\Windows\System32\KernelBase.dll","SUCCESS","Name: \Windows\System32\KernelBase.dll"
+"17:11:00,9513041","Program2.exe","8972","RegQueryValue","HKLM\System\CurrentControlSet\Control\WMI\Security\b749553b-d950-5e03-6282-3145a61b1002","NAME NOT FOUND","Length: 528"
+"17:11:00,9513284","Program2.exe","8972","QueryNameInformationFile","C:\Windows\System32\KernelBase.dll","SUCCESS","Name: \Windows\System32\KernelBase.dll"
+"17:11:00,9514561","Program2.exe","8972","RegOpenKey","HKLM\System\CurrentControlSet\Control\StateSeparation\RedirectionMap\Keys","REPARSE","Desired Access: Read"
+"17:11:00,9514705","Program2.exe","8972","RegOpenKey","HKLM\System\CurrentControlSet\Control\StateSeparation\RedirectionMap\Keys","NAME NOT FOUND","Desired Access: Read"
+"17:11:00,9515215","Program2.exe","8972","QueryNameInformationFile","C:\Windows\System32\KernelBase.dll","SUCCESS","Name: \Windows\System32\KernelBase.dll"
+"17:11:00,9515472","Program2.exe","8972","RegQueryValue","HKLM\System\CurrentControlSet\Control\WMI\Security\05f95efe-7f75-49c7-a994-60a55cc09571","NAME NOT FOUND","Length: 528"
+"17:11:00,9515712","Program2.exe","8972","QueryNameInformationFile","C:\Windows\System32\KernelBase.dll","SUCCESS","Name: \Windows\System32\KernelBase.dll"
+"17:11:00,9516058","Program2.exe","8972","RegOpenKey","HKLM\System\CurrentControlSet\Control\Terminal Server","REPARSE","Desired Access: Read"
+"17:11:00,9516171","Program2.exe","8972","RegOpenKey","HKLM\System\CurrentControlSet\Control\Terminal Server","SUCCESS","Desired Access: Read"
+"17:11:00,9516325","Program2.exe","8972","RegQueryValue","HKLM\System\CurrentControlSet\Control\Terminal Server\TSAppCompat","NAME NOT FOUND","Length: 548"
+"17:11:00,9516415","Program2.exe","8972","RegQueryValue","HKLM\System\CurrentControlSet\Control\Terminal Server\TSUserEnabled","SUCCESS","Type: REG_DWORD, Length: 4, Data: 0"
+"17:11:00,9516536","Program2.exe","8972","RegCloseKey","HKLM\System\CurrentControlSet\Control\Terminal Server","SUCCESS",""
+"17:11:00,9517979","Program2.exe","8972","RegOpenKey","HKLM\System\CurrentControlSet\Control\SafeBoot\Option","REPARSE","Desired Access: Query Value, Set Value"
+"17:11:00,9518069","Program2.exe","8972","RegOpenKey","HKLM\System\CurrentControlSet\Control\SafeBoot\Option","NAME NOT FOUND","Desired Access: Query Value, Set Value"
+"17:11:00,9518180","Program2.exe","8972","RegOpenKey","HKLM\System\CurrentControlSet\Control\Srp\GP\DLL","REPARSE","Desired Access: Read"
+"17:11:00,9518265","Program2.exe","8972","RegOpenKey","HKLM\System\CurrentControlSet\Control\Srp\GP\DLL","SUCCESS","Desired Access: Read"
+"17:11:00,9518378","Program2.exe","8972","RegQueryKey","HKLM\System\CurrentControlSet\Control\Srp\Gp\DLL","SUCCESS","Query: Full, SubKeys: 1, Values: 0"
+"17:11:00,9518488","Program2.exe","8972","RegCloseKey","HKLM\System\CurrentControlSet\Control\Srp\Gp\DLL","SUCCESS",""
+"17:11:00,9518573","Program2.exe","8972","RegOpenKey","HKLM\Software\Policies\Microsoft\Windows\Safer\CodeIdentifiers","SUCCESS","Desired Access: Query Value"
+"17:11:00,9518719","Program2.exe","8972","RegQueryValue","HKLM\SOFTWARE\Policies\Microsoft\Windows\safer\codeidentifiers\TransparentEnabled","NAME NOT FOUND","Length: 80"
+"17:11:00,9518816","Program2.exe","8972","RegCloseKey","HKLM\SOFTWARE\Policies\Microsoft\Windows\safer\codeidentifiers","SUCCESS",""
+"17:11:00,9518921","Program2.exe","8972","RegOpenKey","HKCU\Software\Policies\Microsoft\Windows\Safer\CodeIdentifiers","NAME NOT FOUND","Desired Access: Query Value"
+"17:11:00,9519125","Program2.exe","8972","RegOpenKey","HKLM\System\CurrentControlSet\Control\FileSystem\","REPARSE","Desired Access: Read"
+"17:11:00,9519216","Program2.exe","8972","RegOpenKey","HKLM\System\CurrentControlSet\Control\FileSystem","SUCCESS","Desired Access: Read"
+"17:11:00,9519313","Program2.exe","8972","RegQueryValue","HKLM\System\CurrentControlSet\Control\FileSystem\LongPathsEnabled","SUCCESS","Type: REG_DWORD, Length: 4, Data: 1"
+"17:11:00,9519435","Program2.exe","8972","RegQueryValue","HKLM\System\CurrentControlSet\Control\FileSystem\LPGO","NAME NOT FOUND","Length: 20"
+"17:11:00,9519521","Program2.exe","8972","RegCloseKey","HKLM\System\CurrentControlSet\Control\FileSystem","SUCCESS",""
+"17:11:00,9520963","Program2.exe","8972","Load Image","C:\Windows\System32\msvcrt.dll","SUCCESS","Image Base: 0x7ffcfe150000, Image Size: 0xa7000"
+"17:11:00,9522227","Program2.exe","8972","Thread Create","","SUCCESS","Thread ID: 10696"
+"17:11:00,9525786","Program2.exe","8972","RegOpenKey","HKLM\SYSTEM\CurrentControlSet\Control\Session Manager","REPARSE","Desired Access: Query Value, Enumerate Sub Keys"
+"17:11:00,9526000","Program2.exe","8972","RegOpenKey","HKLM\System\CurrentControlSet\Control\Session Manager","SUCCESS","Desired Access: Query Value, Enumerate Sub Keys"
+"17:11:00,9526163","Program2.exe","8972","RegQueryValue","HKLM\System\CurrentControlSet\Control\Session Manager\ResourcePolicies","NAME NOT FOUND","Length: 24"
+"17:11:00,9526295","Program2.exe","8972","RegCloseKey","HKLM\System\CurrentControlSet\Control\Session Manager","SUCCESS",""
+"17:11:00,9526711","Program2.exe","8972","RegOpenKey","HKLM\System\CurrentControlSet\Control\Nls\Sorting\Versions","REPARSE","Desired Access: Read"
+"17:11:00,9526826","Program2.exe","8972","RegOpenKey","HKLM\System\CurrentControlSet\Control\Nls\Sorting\Versions","SUCCESS","Desired Access: Read"
+"17:11:00,9526973","Program2.exe","8972","RegQueryValue","HKLM\System\CurrentControlSet\Control\Nls\Sorting\Versions\(Default)","SUCCESS","Type: REG_SZ, Length: 18, Data: 00060403"
+"17:11:00,9527089","Program2.exe","8972","RegQueryValue","HKLM\System\CurrentControlSet\Control\Nls\Sorting\Versions\000604xx","SUCCESS","Type: REG_SZ, Length: 26, Data: kernel32.dll"
+"17:11:00,9527645","Program2.exe","8972","RegOpenKey","HKLM\System\CurrentControlSet\Control\Session Manager","REPARSE","Desired Access: Query Value"
+"17:11:00,9527735","Program2.exe","8972","RegOpenKey","HKLM\System\CurrentControlSet\Control\Session Manager","SUCCESS","Desired Access: Query Value"
+"17:11:00,9527826","Program2.exe","8972","RegQueryValue","HKLM\System\CurrentControlSet\Control\Session Manager\SmtDelaySleepLoopWindowSize","NAME NOT FOUND","Length: 80"
+"17:11:00,9527899","Program2.exe","8972","RegQueryValue","HKLM\System\CurrentControlSet\Control\Session Manager\SmtDelaySpinCountThreshold","NAME NOT FOUND","Length: 80"
+"17:11:00,9527988","Program2.exe","8972","RegQueryValue","HKLM\System\CurrentControlSet\Control\Session Manager\SmtDelayBaseYield","NAME NOT FOUND","Length: 80"
+"17:11:00,9528056","Program2.exe","8972","RegQueryValue","HKLM\System\CurrentControlSet\Control\Session Manager\SmtFactorYield","NAME NOT FOUND","Length: 80"
+"17:11:00,9528120","Program2.exe","8972","RegQueryValue","HKLM\System\CurrentControlSet\Control\Session Manager\SmtDelayMaxYield","NAME NOT FOUND","Length: 80"
+"17:11:00,9528206","Program2.exe","8972","RegCloseKey","HKLM\System\CurrentControlSet\Control\Session Manager","SUCCESS",""
+"17:11:00,9528877","Program2.exe","8972","QueryNameInformationFile","C:\Users\kseni\lab4_OS\build\Program2.exe","SUCCESS","Name: \Users\kseni\lab4_OS\build\Program2.exe"
+"17:11:00,9530297","Program2.exe","8972","RegOpenKey","HKLM\System\CurrentControlSet\Control\Session Manager","REPARSE","Desired Access: Query Value"
+"17:11:00,9530420","Program2.exe","8972","RegOpenKey","HKLM\System\CurrentControlSet\Control\Session Manager","SUCCESS","Desired Access: Query Value"
+"17:11:00,9530535","Program2.exe","8972","RegQueryValue","HKLM\System\CurrentControlSet\Control\Session Manager\SafeDllSearchMode","NAME NOT FOUND","Length: 16"
+"17:11:00,9532480","Program2.exe","8972","CreateFile","C:\Users\kseni\lab4_OS\build\lib1.dll","SUCCESS","Desired Access: Read Attributes, Disposition: Open, Options: Open Reparse Point, Attributes: n/a, ShareMode: Read, Write, Delete, AllocationSize: n/a, OpenResult: Opened"
+"17:11:00,9532787","Program2.exe","8972","QueryBasicInformationFile","C:\Users\kseni\lab4_OS\build\lib1.dll","SUCCESS","CreationTime: 08.12.2025 16:09:58, LastAccessTime: 08.12.2025 17:03:10, LastWriteTime: 08.12.2025 17:02:52, ChangeTime: 08.12.2025 17:02:52, FileAttributes: A"
+"17:11:00,9533083","Program2.exe","8972","CloseFile","C:\Users\kseni\lab4_OS\build\lib1.dll","SUCCESS",""
+"17:11:00,9534164","Program2.exe","8972","CreateFile","C:\Users\kseni\lab4_OS\build\lib1.dll","SUCCESS","Desired Access: Read Data/List Directory, Execute/Traverse, Synchronize, Disposition: Open, Options: Synchronous IO Non-Alert, Non-Directory File, Attributes: n/a, ShareMode: Read, Delete, AllocationSize: n/a, OpenResult: Opened"
+"17:11:00,9534632","Program2.exe","8972","CreateFileMapping","C:\Users\kseni\lab4_OS\build\lib1.dll","FILE LOCKED WITH ONLY READERS","SyncType: SyncTypeCreateSection, PageProtection: PAGE_EXECUTE_READ|PAGE_NOCACHE"
+"17:11:00,9535635","Program2.exe","8972","CreateFileMapping","C:\Users\kseni\lab4_OS\build\lib1.dll","SUCCESS","SyncType: SyncTypeOther"
+"17:11:00,9535949","Program2.exe","8972","RegOpenKey","HKLM\System\CurrentControlSet\Control\Srp\GP\","REPARSE","Desired Access: Read"
+"17:11:00,9536175","Program2.exe","8972","RegOpenKey","HKLM\System\CurrentControlSet\Control\Srp\GP","SUCCESS","Desired Access: Read"
+"17:11:00,9536380","Program2.exe","8972","RegQueryValue","HKLM\System\CurrentControlSet\Control\Srp\Gp\RuleCount","SUCCESS","Type: REG_DWORD, Length: 4, Data: 2"
+"17:11:00,9536571","Program2.exe","8972","RegCloseKey","HKLM\System\CurrentControlSet\Control\Srp\Gp","SUCCESS",""
+"17:11:00,9537398","Program2.exe","8972","Load Image","C:\Users\kseni\lab4_OS\build\lib1.dll","SUCCESS","Image Base: 0x7ffca2580000, Image Size: 0xc8000"
+"17:11:00,9538258","Program2.exe","8972","CloseFile","C:\Users\kseni\lab4_OS\build\lib1.dll","SUCCESS",""
+"17:11:06,3636601","Program2.exe","8972","CreateFile","C:\Users\kseni\lab4_OS\build\lib2.dll","SUCCESS","Desired Access: Read Attributes, Disposition: Open, Options: Open Reparse Point, Attributes: n/a, ShareMode: Read, Write, Delete, AllocationSize: n/a, OpenResult: Opened"
+"17:11:06,3636927","Program2.exe","8972","QueryBasicInformationFile","C:\Users\kseni\lab4_OS\build\lib2.dll","SUCCESS","CreationTime: 08.12.2025 16:09:58, LastAccessTime: 08.12.2025 17:03:10, LastWriteTime: 08.12.2025 17:02:52, ChangeTime: 08.12.2025 17:02:52, FileAttributes: A"
+"17:11:06,3637054","Program2.exe","8972","CloseFile","C:\Users\kseni\lab4_OS\build\lib2.dll","SUCCESS",""
+"17:11:06,3637774","Program2.exe","8972","CreateFile","C:\Users\kseni\lab4_OS\build\lib2.dll","SUCCESS","Desired Access: Read Data/List Directory, Execute/Traverse, Synchronize, Disposition: Open, Options: Synchronous IO Non-Alert, Non-Directory File, Attributes: n/a, ShareMode: Read, Delete, AllocationSize: n/a, OpenResult: Opened"
+"17:11:06,3638156","Program2.exe","8972","CreateFileMapping","C:\Users\kseni\lab4_OS\build\lib2.dll","FILE LOCKED WITH ONLY READERS","SyncType: SyncTypeCreateSection, PageProtection: PAGE_EXECUTE_READ|PAGE_NOCACHE"
+"17:11:06,3638855","Program2.exe","8972","CreateFileMapping","C:\Users\kseni\lab4_OS\build\lib2.dll","SUCCESS","SyncType: SyncTypeOther"
+"17:11:06,3639107","Program2.exe","8972","RegOpenKey","HKLM\System\CurrentControlSet\Control\Srp\GP\","REPARSE","Desired Access: Read"
+"17:11:06,3639306","Program2.exe","8972","RegOpenKey","HKLM\System\CurrentControlSet\Control\Srp\GP","SUCCESS","Desired Access: Read"
+"17:11:06,3639476","Program2.exe","8972","RegQueryValue","HKLM\System\CurrentControlSet\Control\Srp\Gp\RuleCount","SUCCESS","Type: REG_DWORD, Length: 4, Data: 2"
+"17:11:06,3639627","Program2.exe","8972","RegCloseKey","HKLM\System\CurrentControlSet\Control\Srp\Gp","SUCCESS",""
+"17:11:06,3641161","Program2.exe","8972","Load Image","C:\Users\kseni\lab4_OS\build\lib2.dll","SUCCESS","Image Base: 0x7ffca2580000, Image Size: 0xc8000"
+"17:11:06,3642129","Program2.exe","8972","CloseFile","C:\Users\kseni\lab4_OS\build\lib2.dll","SUCCESS",""
+"17:11:10,2538977","Program2.exe","8972","CreateFile","C:\Users\kseni\lab4_OS\build\lib1.dll","SUCCESS","Desired Access: Read Attributes, Disposition: Open, Options: Open Reparse Point, Attributes: n/a, ShareMode: Read, Write, Delete, AllocationSize: n/a, OpenResult: Opened"
+"17:11:10,2539282","Program2.exe","8972","QueryBasicInformationFile","C:\Users\kseni\lab4_OS\build\lib1.dll","SUCCESS","CreationTime: 08.12.2025 16:09:58, LastAccessTime: 08.12.2025 17:11:00, LastWriteTime: 08.12.2025 17:02:52, ChangeTime: 08.12.2025 17:02:52, FileAttributes: A"
+"17:11:10,2539411","Program2.exe","8972","CloseFile","C:\Users\kseni\lab4_OS\build\lib1.dll","SUCCESS",""
+"17:11:10,2540129","Program2.exe","8972","CreateFile","C:\Users\kseni\lab4_OS\build\lib1.dll","SUCCESS","Desired Access: Read Data/List Directory, Execute/Traverse, Synchronize, Disposition: Open, Options: Synchronous IO Non-Alert, Non-Directory File, Attributes: n/a, ShareMode: Read, Delete, AllocationSize: n/a, OpenResult: Opened"
+"17:11:10,2540502","Program2.exe","8972","CreateFileMapping","C:\Users\kseni\lab4_OS\build\lib1.dll","FILE LOCKED WITH ONLY READERS","SyncType: SyncTypeCreateSection, PageProtection: PAGE_EXECUTE_READ|PAGE_NOCACHE"
+"17:11:10,2541108","Program2.exe","8972","CreateFileMapping","C:\Users\kseni\lab4_OS\build\lib1.dll","SUCCESS","SyncType: SyncTypeOther"
+"17:11:10,2541374","Program2.exe","8972","RegOpenKey","HKLM\System\CurrentControlSet\Control\Srp\GP\","REPARSE","Desired Access: Read"
+"17:11:10,2541573","Program2.exe","8972","RegOpenKey","HKLM\System\CurrentControlSet\Control\Srp\GP","SUCCESS","Desired Access: Read"
+"17:11:10,2541740","Program2.exe","8972","RegQueryValue","HKLM\System\CurrentControlSet\Control\Srp\Gp\RuleCount","SUCCESS","Type: REG_DWORD, Length: 4, Data: 2"
+"17:11:10,2541890","Program2.exe","8972","RegCloseKey","HKLM\System\CurrentControlSet\Control\Srp\Gp","SUCCESS",""
+"17:11:10,2542536","Program2.exe","8972","Load Image","C:\Users\kseni\lab4_OS\build\lib1.dll","SUCCESS","Image Base: 0x7ffca2580000, Image Size: 0xc8000"
+"17:11:10,2544272","Program2.exe","8972","CloseFile","C:\Users\kseni\lab4_OS\build\lib1.dll","SUCCESS",""
+"17:11:24,0989416","Program2.exe","8972","Thread Exit","","SUCCESS","Thread ID: 10696, User Time: 0.0000000, Kernel Time: 0.0000000"
+"17:11:24,0989960","Program2.exe","8972","Thread Exit","","SUCCESS","Thread ID: 340, User Time: 0.0000000, Kernel Time: 0.0000000"
+"17:11:24,0992375","Program2.exe","8972","Process Exit","","SUCCESS","Exit Status: 0, User Time: 0.0000000 seconds, Kernel Time: 0.0000000 seconds, Private Bytes: 987 136, Peak Private Bytes: 1 019 904, Working Set: 3 719 168, Peak Working Set: 3 723 264"
+"17:11:24,0992650","Program2.exe","8972","RegOpenKey","HKLM\System\CurrentControlSet\Services\bam\State\UserSettings\S-1-5-21-956525231-4267278670-869784965-1001","SUCCESS","Desired Access: All Access"
+"17:11:24,0992924","Program2.exe","8972","RegQueryValue","HKLM\System\CurrentControlSet\Services\bam\State\UserSettings\S-1-5-21-956525231-4267278670-869784965-1001\\Device\HarddiskVolume3\Users\kseni\lab4_OS\build\Program2.exe","NAME NOT FOUND","Length: 40"
+"17:11:24,0993111","Program2.exe","8972","RegCloseKey","HKLM\System\CurrentControlSet\Services\bam\State\UserSettings\S-1-5-21-956525231-4267278670-869784965-1001","SUCCESS",""
+"17:11:24,0993642","Program2.exe","8972","CloseFile","C:\Users\kseni\lab4_OS\build","SUCCESS",""
+"17:11:24,0994506","Program2.exe","8972","RegCloseKey","HKLM\System\CurrentControlSet\Control\Nls\Sorting\Versions","SUCCESS",""
+"17:11:24,0994604","Program2.exe","8972","RegCloseKey","HKLM\System\CurrentControlSet\Control\Session Manager","SUCCESS",""
+\end{verbatim}
